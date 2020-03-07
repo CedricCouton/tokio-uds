@@ -8,14 +8,13 @@ pub struct UCred {
     /// GID (group ID) of the process
     pub gid: gid_t,
 }
-
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub use self::impl_linux::get_peer_cred;
 
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
 pub use self::impl_macos::get_peer_cred;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod impl_linux {
     use libc::{getsockopt, SOL_SOCKET, SO_PEERCRED, c_void};
     use std::{io, mem};
@@ -23,6 +22,7 @@ pub mod impl_linux {
     use std::os::unix::io::AsRawFd;
 
     use libc::ucred;
+    use std::os::raw::{c_int};
 
     pub fn get_peer_cred(sock: &UnixStream) -> io::Result<super::UCred> {
         unsafe {
@@ -36,8 +36,8 @@ pub mod impl_linux {
             assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
             assert!(ucred_size <= u32::max_value() as usize);
 
-            let mut ucred_size = ucred_size as u32;
-            
+            let mut ucred_size = ucred_size as c_int;
+
             let ret = getsockopt(raw_fd, SOL_SOCKET, SO_PEERCRED, &mut ucred as *mut ucred as *mut c_void, &mut ucred_size);
             if ret == 0 && ucred_size as usize == mem::size_of::<ucred>() {
                 Ok(super::UCred {
