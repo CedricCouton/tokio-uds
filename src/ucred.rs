@@ -20,9 +20,9 @@ pub mod impl_linux {
     use std::{io, mem};
     use UnixStream;
     use std::os::unix::io::AsRawFd;
+    use libc::socklen_t;
 
     use libc::ucred;
-    use std::os::raw::{c_int};
 
     pub fn get_peer_cred(sock: &UnixStream) -> io::Result<super::UCred> {
         unsafe {
@@ -36,7 +36,7 @@ pub mod impl_linux {
             assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
             assert!(ucred_size <= u32::max_value() as usize);
 
-            let mut ucred_size = ucred_size as c_int;
+            let mut ucred_size = ucred_size as socklen_t;
 
             let ret = getsockopt(raw_fd, SOL_SOCKET, SO_PEERCRED, &mut ucred as *mut ucred as *mut c_void, &mut ucred_size);
             if ret == 0 && ucred_size as usize == mem::size_of::<ucred>() {
